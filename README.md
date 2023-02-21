@@ -70,10 +70,10 @@ UPDATE customers SET "customerFName"='test' where "customerId"=3;
 docker exec -it spark-client bash
 
 ## Add user spark
-mc admin user add mlops_minio spark spark12345
+mc admin user add mlops_minio <user> <password>
 
 ## Set spark readwrite
-mc admin policy set mlops_minio readwrite user=spark
+mc admin policy set mlops_minio readwrite user=<user>
 
 ## Create a bucket named cdc-data
 mc mb mlops_minio/cdc-data
