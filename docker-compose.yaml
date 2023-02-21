@@ -1,0 +1,89 @@
+version: '3'
+services:
+  zookeeper:
+    image: quay.io/debezium/zookeeper:1.9
+    ports:
+     - 2181:2181
+     - 2888:2888
+     - 3888:3888
+  kafka:
+    image: quay.io/debezium/kafka:1.9
+    ports:
+     - 9092:9092
+    links:
+     - zookeeper
+    environment:
+     - ZOOKEEPER_CONNECT=zookeeper:2181
+  postgres:
+    image: quay.io/debezium/example-postgres:1.9
+    ports:
+     - 5433:5432
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+     - POSTGRES_DB=postgres
+  connect:
+    image: quay.io/debezium/connect:1.9
+    ports:
+     - 8083:8083
+    links:
+     - kafka
+     - postgres
+    environment:
+     - BOOTSTRAP_SERVERS=kafka:9092
+     - GROUP_ID=1
+     - CONFIG_STORAGE_TOPIC=my_connect_configs
+     - OFFSET_STORAGE_TOPIC=my_connect_offsets
+     - STATUS_STORAGE_TOPIC=my_connect_statuses
+# For testing newer connector versions, unpack the connector archive into this
+# directory and uncomment the lines below
+#    volumes:
+#     - ./debezium-connector-postgres:/kafka/connect/debezium-connector-postgres
+  spark-master:
+    container_name: spark-master
+    build: ./spark
+    ports:
+     - "4040:4040"
+     - "7077:7077"
+     - "8080:8080"
+     - "18080:18080"
+    command: sh spark-master.sh
+  spark-worker:
+    container_name: spark-worker
+    build: ./spark
+    depends_on:
+     - spark-master
+    ports:
+     - "28081-28085:8081"
+    command: sh spark-worker.sh
+  spark-client:
+    container_name: spark-client
+    build: ./spark_client
+    ports:
+     - "8888:8888"
+     - "4041:4040"
+    volumes:
+     - ./spark_client/examples:/opt/examples
+    command: sleep infinity
+# S3 compatible object storage: MinIO
+  minio:
+    container_name: minio
+    image: "minio/minio:RELEASE.2021-10-13T00-23-17Z"
+    volumes:
+     - minio:/data
+    ports:
+     - "9000:9000"
+     - "9001:9001"
+    environment:
+     MINIO_ACCESS_KEY: "root"
+     MINIO_SECRET_KEY: "root12345"
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+volumes:
+  minio:
+  spark-client:
+
