@@ -12,9 +12,6 @@ sudo systemctl start docker
 
 sudo systemctl status docker
 
-## Stop local PostgreSQL:
-sudo systemctl stop postgresql-10
-
 # Step 1: Create docker-compose.yaml
 
 ## Services that should be in the container:
